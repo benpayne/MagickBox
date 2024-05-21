@@ -14,7 +14,7 @@ function loadDB() {
 
    // parse permissions
    if (!file_exists($db_file)) {
-      addLog ('error: permission file does not exist');
+      addLog ('warning: file does not exist');
       return $d;
    }
    if (!is_readable($db_file)) {
@@ -35,7 +35,7 @@ function saveDB( $d ) {
       addLog('error: timing file does not exist');
       //return;
    }
-   if (!is_writable($db_file)) {
+   elseif (!is_writable($db_file)) {
       addLog('Error: cannot write database timing file ('.$db_file.')');
       //return;
    }

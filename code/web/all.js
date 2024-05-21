@@ -316,41 +316,43 @@ jQuery(document).ready(function() {
     });
 
     jQuery.getJSON('/code/php/getInstalledBuckets.php', function(data) {
-	for (var i = 0; i < data.length; i++) {
+        for (var i = 0; i < data.length; i++) {
+                name = data[i]['name'];
+                desc = data[i]['description'];
+                jQuery('#installed-buckets').append("<li><a href='#' title=\"" + desc + "\">" + name + "</a></li>");
+        }
+        for (var i = 0; i < data.length; i++) {
             name = data[i]['name'];
             desc = data[i]['description'];
-            jQuery('#installed-buckets').append("<li><a href='#' title=\"" + desc + "\">" + name + "</a></li>");
-	}
-	for (var i = 0; i < data.length; i++) {
-            name = data[i]['name'];
-            desc = data[i]['description'];
-	    aetitle = data[i]['AETitle'];
-	    if (typeof(aetitle) == 'undefined')
-	        aetitle = "NONE";
+            aetitle = data[i]['aetitle'];
+            if (typeof(aetitle) == 'undefined')
+                aetitle = "NONE";
             jQuery('#installed-buckets-list-large').append("<li class=\"table-row row" + i + "\">AETitle: \"" + aetitle + "\", Name: \"" 
-							   + name + "\"<br/><small>" + desc +
-						           "</small>" + "</li>");
+                                + name + "\"<br/><small>" + desc +
+                                    "</small>" + "</li>");
 
-	    // lets create a picture for each bucket
-	    var pattern = Trianglify({
-		width: 250, height: 150, cell_size: 20, seed: aetitle });
-	    patternList[aetitle] = pattern.png();
-
+            // lets create a picture for each bucket
+            var pattern = Trianglify({
+            width: 250, height: 150, cell_size: 20, seed: aetitle });
+            patternList[aetitle] = pattern.png();
+            
+            /* Remove license checking for now
             if (typeof(aetitle) !== 'undefined') {
-              jQuery.getJSON('/code/php/getLicense.php', { operation: "query", feature: aetitle }, function(num) {
-                return function(data) {
-                    if (data.contingent < 5) {
-                      jQuery('.row'+num).append(" <span class=\"label label-error\" title=\"Number of available sessions\">" + data.contingent + "</span>");
-		    } else {
-                      jQuery('.row'+num).append(" <span class=\"label label-info\" title=\"Number of available sessions\">" + data.contingent + "</span>");
-		    }
-		    if (typeof(data.message) !== 'undefined') {
-			jQuery('.row'+num).append("<br> <span class=\"label label-warning\" title=\"Message\">" + data.message + "</span>");
-		    }
-                };
-              }(i), "jsonp");
-            }
-	}
+
+                jQuery.getJSON('/code/php/getLicense.php', { operation: "query", feature: aetitle }, function(num) {
+                    return function(data) {
+                        if (data.contingent < 5) {
+                            jQuery('.row'+num).append(" <span class=\"label label-error\" title=\"Number of available sessions\">" + data.contingent + "</span>");
+                        } else {
+                            jQuery('.row'+num).append(" <span class=\"label label-info\" title=\"Number of available sessions\">" + data.contingent + "</span>");
+                        }
+                        if (typeof(data.message) !== 'undefined') {
+                            jQuery('.row'+num).append("<br> <span class=\"label label-warning\" title=\"Message\">" + data.message + "</span>");
+                        }
+                    };
+                }(i), "jsonp");
+            } */
+        }
     });
 
     jQuery.get('/code/php/setup.php?command=get', function(data) {

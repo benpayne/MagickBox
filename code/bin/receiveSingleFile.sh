@@ -24,19 +24,11 @@ AETitleCaller=$1
 AETitleCalled=$2
 CallerIP=$3
 DIR=$4
-SDIR=$(basename "$DIR")
 FILE=$5
 
-#echo "got something" >> /data/logs/receivedSingleFile.log
+echo "got something for $AETitleCalled" >> /data/logs/receivedSingleFile.log
 
-WORKINGDIR=/data/scratch/.arrived
-# not using sed should make this script faster
-# before: fn=`echo "${WORKINGDIR}/$AETitleCaller $AETitleCalled $CallerIP $SDIR" | sed -e 's/\"//g'`
-fn=`echo "${WORKINGDIR}/$AETitleCaller $AETitleCalled $CallerIP $SDIR"`
-fn=${fn//\"/}
-
-echo "$DIR/$FILE" >> "${fn}"
-#echo "$fn" >> /data/logs/receivedSingleFile.log
+echo "sending $DIR/$FILE" >> /data/logs/receivedSingleFile.log
 
 # tell the orig2raw script processSingleFile.py that we got a new file
 # We can do this using python ... but that will take too much system resources
@@ -46,4 +38,8 @@ pipe=/tmp/.processSingleFilePipe
 if [[ -p $pipe ]]; then
    # this is a named pipe which will block until someome is reading from it
    echo "$DIR/$FILE" >$pipe
+   echo "sent to $AETitleCalled" >> /data/logs/receivedSingleFile.log
 fi
+
+# called bucket1 process_master to dispach the worker
+/data/streams/bucket01/process_master.sh $AETitleCaller $AETitleCalled $CallerIP $DIR

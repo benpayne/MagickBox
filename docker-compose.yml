@@ -1,0 +1,25 @@
+services:
+  core:
+    build: .
+    image: magickbox
+    volumes:
+      - data_scratch:/data/scratch
+    ports:
+      - "3000:80"  
+      - "2813:2813"
+      - "11113:11113"
+      - "4730:4730"
+
+  worker:
+    build: worker_container
+    image: mytestbucket
+    volumes:
+      - data_scratch:/data/scratch
+    environment:
+      GEARMAN_JOB_SERVER_NAME: "core"
+      GEARMAN_JOB_SERVER_PORT: "4730"
+    depends_on:
+      - core  # Ensures app starts first
+
+volumes:
+  data_scratch:

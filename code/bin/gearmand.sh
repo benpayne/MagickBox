@@ -9,7 +9,7 @@ gearmand=`which gearmand`
 case $1 in
     'start')
 	echo "starting gearmand..."
-	$gearmand -d -L 127.0.0.1 -p 4730 -u processing -P $pidfile -q libsqlite3 --libsqlite3-db=$DIR/gearman.db -l /data/logs/gearmand.log
+	$gearmand -d -L 0.0.0.0 -p 4730 -u processing -P $pidfile -q libsqlite3 --libsqlite3-db=$DIR/gearman.db -l /data/logs/gearmand.log
 	;;
     'stop')
 	/usr/bin/pkill -F $pidfile

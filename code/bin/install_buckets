@@ -1,0 +1,48 @@
+#!/bin/bash
+
+# container name
+what=$1
+
+# now we can create the bucket directory
+AETitle=$2
+bucket=/data/streams/bucket${AETitle}
+
+echo "Installing container \"$what\" to support \"$AETitle\""
+
+# create the bucket directory first
+mkdir -p "$bucket"
+# put a copy of the config file into this directory
+cat > $bucket/info.json <<EOF
+{
+  "name": "$what",
+  "aetitle": "$AETitle",
+  "description": "This is a bucket for $AETitle",
+  "version": "0.0",
+  "enabled": 1
+}
+EOF
+
+# TODO: Need to design a soluition for this in the future.
+# add plugin code
+#PLUGIN=$(docker run $what /bin/bash -c "test -f /root/storage/db-plugin.code && cat /root/storage/db-plugin.code && exit")
+#if [ -n "$PLUGIN" ]; then
+#    echo "Found a plugin, copy to the /data/code/php/db-plugins/${AETitle} directory now..."
+#    # create a folder for this plugin based on the AETitle
+#    mkdir -p /data/code/php/db-plugins/${AETitle}
+#    echo $PLUGIN > /data/code/php/db-plugins/${AETitle}/db-plugins.code
+#fi
+
+# TODO: We will support memory by having docker create a volume for each container.  This will be mounted to /memory
+# create memory directory to keep permanent files accessible to containers (database files etc.)
+#MEMORY=$(docker run $what /bin/bash -c "if [ -d /root/storage/memory ] ; then echo 1; fi; exit")
+#if [ "$MEMORY" == "1" ]; then
+#    echo "Found a memory folder, copy content to /data/streams/bucket${AETitle}/memory/ now..."
+#    # create a folder for this plugin based on the AETitle
+#    mkdir -p /data/streams/bucket${AETitle}/memory
+#    $(docker run -v /data/streams/bucket${AETitle}/memory:/memory $what /bin/bash -c "cp -R /root/storage/memory/. /memory/ && exit")
+#    ls -la /data/streams/bucket${AETitle}/memory/
+#fi
+
+# done with install
+echo ""
+echo "Installation done"

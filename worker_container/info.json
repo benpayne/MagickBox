@@ -1,0 +1,8 @@
+{
+    "name": "${what}",
+    "description": "Describe briefly what this bucket does",
+    "version": "0.0",
+    "AETitle": "${what}",
+    "enabled": 1
+}
+  

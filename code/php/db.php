@@ -140,7 +140,7 @@ if (isset($_GET['parse'])) {
    $key=basename($query);
    // collect all measures for this handle (could be sender or tmp)
    $datafiles = glob($databasedir.'/'.$sender.'/'.$key.'/*.json');   
-   //$data = array( 'message' => 'in query with '.count($datafiles). ' files found in '.$databasedir.'/'.$sender.'/'.$key.'/*.json' );
+   $data = array( 'message' => 'in query with '.count($datafiles). ' files found in '.$databasedir.'/'.$sender.'/'.$key.'/*.json' );
    foreach( $datafiles as $d ) {
       $content = json_decode( file_get_contents($d), true );
       // $content = array( 'look in file' => $d );

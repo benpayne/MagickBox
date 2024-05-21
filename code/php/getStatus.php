@@ -6,7 +6,7 @@
   $vals = $ret;
   $erg = array();
   foreach ($vals as &$value) {
-    $ss = split("\t", $value);
+    $ss = explode("\t", $value);
     if (count($ss) > 2)
       $erg[] = $ss;
   }   

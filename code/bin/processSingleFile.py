@@ -8,7 +8,23 @@ import sys, os, time, atexit, stat, tempfile, copy
 import pydicom, json, re
 from signal import SIGTERM
 from pydicom.filereader import InvalidDicomError
+import logging
 
+# Configure logging to file
+logging.basicConfig(filename='/data/logs/processSingleFile.log',       # Log filename
+                    filemode='w',             # Mode to open the file, 'w' for writing (overwrites), 'a' for appending
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',  # Include logger name
+                    datefmt='%Y-%m-%d %H:%M:%S',  # Date format
+                    level=logging.DEBUG)       # Log level
+
+# Create a logger object
+logger = logging.getLogger("processSingleFile")
+
+class DicomJSON(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, pydicom.valuerep.PersonName):
+            return str(obj)
+        return json.JSONEncoder.default(self, obj)
 
 class Daemon:
         """
@@ -41,7 +57,7 @@ class Daemon:
                     # decouple from parent environment
                     os.chdir("/")
                     os.setsid()
-                    os.umask(0)
+                    os.umask(0o002)
                 
                     # do second fork
                     try:
@@ -104,9 +120,9 @@ class Daemon:
                             sys.exit(1)
                             
                     # Start the daemon
-                    print(' start the daemon')
+                    logger.info(' start the daemon')
                     self.daemonize()
-                    print(' done')
+                    logger.info(' done')
                     self.run()
 
         def send(self,arg):
@@ -121,7 +137,7 @@ class Daemon:
                                     wd.flush()
                                     wd.close()
                             except IOError:
-                                    print('Error: could not open the pipe %s' % self.pipename)
+                                    logger.error('Error: could not open the pipe %s' % self.pipename)
                     else:
                             sys.stderr.write(self.pipename)
                             sys.stderr.write("Error: the connection to the daemon does not exist\n")
@@ -156,7 +172,7 @@ class Daemon:
                                                         os.remove(self.pidfile)
                                                         os.remove(self.pipename)
                                 else:
-                                            print(str(err))
+                                            logger.error(str(err))
                                             sys.exit(1)
                                                         
         def restart(self):
@@ -186,7 +202,7 @@ class ProcessSingleFile(Daemon):
                             self.classify_rules = self.resolveClassifyRules(self.classify_rules)
                             
                     else:
-                            print("Warning: no /data/code/bin/classifyRules.json file could be found")
+                            logger.warning("Warning: no /data/code/bin/classifyRules.json file could be found")
 
         def resolveClassifyRules(self, classify_rules ):
                 # add recursively rules back until no more changes can be done
@@ -216,7 +232,7 @@ class ProcessSingleFile(Daemon):
                                                                 classify_rules[rule]['rules'].extend(cr)
                                                                 didChange = True
                                                 if not findID:
-                                                        print("Error: could not find a rule with ID %s" % r[ruleornotrule])
+                                                        logger.error("Error: could not find a rule with ID %s" % r[ruleornotrule])
                                                         continue
                                 
                         if not didChange:
@@ -247,13 +263,13 @@ class ProcessSingleFile(Daemon):
                                 v = dataset[int(tag[0],0), int(tag[1],0)].value[int(tag[2],0)]
                 else:
                         raise ValueError('Error: tag with unknown structure, should be 1, 2, or 3 entries in array')
-                        print("Error: tag with unknown structure, should be 1, 2, or 3 entries in array")
+                        logger.error("Error: tag with unknown structure, should be 1, 2, or 3 entries in array")
                 return taghere, v
                         
         def classify(self,dataset,data,classifyTypes):
                 # read the classify rules
                 if self.classify_rules == 0:
-                        print("Warning: no classify rules found in %s, ClassifyType tag will be empty" % self.rulesFile)
+                        logger.warning("Warning: no classify rules found in %s, ClassifyType tag will be empty" % self.rulesFile)
                         return classifyTypes
                 for rule in range(len(self.classify_rules)):
                         t = self.classify_rules[rule]['type']
@@ -372,12 +388,12 @@ class ProcessSingleFile(Daemon):
                         os.mkfifo(self.pipename)
                         atexit.register(self.delpipe)
                 except OSError:
-                        print('OSERROR on creating the named pipe %s' % self.pipename)
+                        logger.error('OSERROR on creating the named pipe %s' % self.pipename)
                         pass
                 try:
                         rp = open(self.pipename, 'r')
                 except OSError:
-                        print('Error: could not open named pipe for reading commands')
+                        logger.error('Error: could not open named pipe for reading commands')
                         sys.exit(1)
                         
                 while True:
@@ -386,17 +402,18 @@ class ProcessSingleFile(Daemon):
                                 time.sleep(0.1)
                                 continue
                         else:
+                                logger.info("Processing file: %s" % response)
                                 try:
                                         dataset = pydicom.read_file(response)
                                 except IOError:
-                                        print("Could not find file:", response)
+                                        logger.error("Could not find file:", response)
                                         continue
                                 except InvalidDicomError:
-                                        print("Not a DICOM file: ", response)
+                                        logger.error("Not a DICOM file: ", response)
                                         continue
                                 indir = '/data/scratch/archive/'
                                 if not os.path.exists(indir):
-                                        print("Error: indir does not exist")
+                                        logger.error("Error: indir does not exist")
                                         continue
                                 outdir = '/data/scratch/views/raw'
                                 if not os.path.exists(outdir):
@@ -406,7 +423,7 @@ class ProcessSingleFile(Daemon):
                                 if not os.path.exists(fn):
                                         os.makedirs(fn)
                                         if not os.path.exists(fn):
-                                                print("Error: creating path ", fn, " did not work")
+                                                logger.error("Error: creating path ", fn, " did not work")
                                 fn2 = os.path.join(fn, dataset.SOPInstanceUID)
                                 if not os.path.isfile(fn2):
                                   os.symlink(response, fn2)
@@ -532,13 +549,17 @@ class ProcessSingleFile(Daemon):
                                 # add new types as they are found (this will create all type that map to any of the images in the series)
                                 data['ClassifyType'] = self.classify(dataset, data, data['ClassifyType'])
                                 #data['ClassifyType'] = data['ClassifyType'] + list(set(self.classify(dataset, data)) - set(data['ClassifyType']))
+                                logger.info(f"dumping to file \"{fn3}\" with data: {data}")
                                 with open(fn3,'w') as f:
-                                        json.dump(data,f,indent=2,sort_keys=True)
+                                        text_data = DicomJSON(indent=2,sort_keys=True).encode(data)
+                                        f.write(text_data)
                 rp.close()
 
 # There are two files that make this thing work, one is the .pid file for the daemon
 # the second is the named pipe in /tmp/.processSingleFile
-#  Hauke,    July 2015               
+#  Hauke,    July 2015
+
+import traceback
 if __name__ == "__main__":
         pidfilename = '/data/.pids/processSingleFile.pid'
         p = os.path.abspath(pidfilename)
@@ -550,8 +571,9 @@ if __name__ == "__main__":
                 if 'start' == sys.argv[1]:
                         try:
                                 daemon.start()
-                        except:
-                                print("Error: could not create processing daemon: %s" % sys.exc_info()[0])
+                        except Exception as e:
+                                logger.error("Error: could not create processing daemon: %s" % e)
+                                logger.exception(traceback.format_exc())
                                 sys.exit(-1)
                 elif 'stop' == sys.argv[1]:
                         daemon.stop()
@@ -559,25 +581,26 @@ if __name__ == "__main__":
                         daemon.restart()
                 elif 'test' == sys.argv[1]:
                         r = daemon.resolveClassifyRules( daemon.classify_rules )
-                        print(json.dumps(r, sort_keys=True, indent=2))
+                        logger.info(json.dumps(r, sort_keys=True, indent=2))
                 else:
-                        print("Unknown command")
+                        logger.error("Unknown command")
                         sys.exit(2)
+                logger.info(f"running command \"{sys.argv[1]}\" finished")
                 sys.exit(0)
         elif len(sys.argv) == 3:
                 if 'send' == sys.argv[1]:
                         daemon.send(sys.argv[2])
                 sys.exit(0)
         else:
-                print("Process DICOM files fast using a daemon process that creates study/series directories with symbolic links.")
-                print("Use 'start' to start the daemon in the background. Send file names for processing using 'send'.")
-                print("Test the rules by running test:")
-                print("   python3 %s test" % sys.argv[0])
-                print("")
-                print("Usage: %s start|stop|restart|send|test" % sys.argv[0])
-                print("")
-                print("Notice: You will see an error message when you start a daemon process. Check if the process is running and ignore the message.")
-                print("For a simple test send a DICOM directory by:")
-                print("  find <dicomdir> -type f -print | grep -v .json  | xargs -i echo \"/path/to/input/{}\" >> /tmp/.processSingleFilePipe")
-                print("")
+                logger.info("Process DICOM files fast using a daemon process that creates study/series directories with symbolic links.")
+                logger.info("Use 'start' to start the daemon in the background. Send file names for processing using 'send'.")
+                logger.info("Test the rules by running test:")
+                logger.info("   python3 %s test" % sys.argv[0])
+                logger.info("")
+                logger.info("Usage: %s start|stop|restart|send|test" % sys.argv[0])
+                logger.info("")
+                logger.info("Notice: You will see an error message when you start a daemon process. Check if the process is running and ignore the message.")
+                logger.info("For a simple test send a DICOM directory by:")
+                logger.info("  find <dicomdir> -type f -logger.info | grep -v .json  | xargs -i echo \"/path/to/input/{}\" >> /tmp/.processSingleFilePipe")
+                logger.info("")
                 sys.exit(2)
