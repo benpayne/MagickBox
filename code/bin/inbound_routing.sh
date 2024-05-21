@@ -11,17 +11,19 @@ fi
 
 # get the PARENTIP and PARENTPORT/WEBPORT variables
 . /data/code/setup.sh
-echo "[process_master.sh] we can read these from setup.sh: $PARENTIP $PARENTPORT" >> /data/logs/bucket01.log
+echo "`date`: read from setup.sh: $PARENTIP $PARENTPORT" >> /data/logs/bucket01.log
 
-AETitleCaller=$1
-AETitleCalled=$2
+
+AETitleCaller=`echo $1 | tr -d '"'`
+AETitleCalled=`echo $2 | tr -d '"'`
 CallerIP=$3
 DIR=$4
 WORKINGDIR=`mktemp -d --tmpdir=/data/scratch/`
 chmod ugo+rwx $WORKINGDIR
 mkdir ${WORKINGDIR}/OUTPUT
 
-echo "`date`: Process bucket01 received data for processing in $WORKINGDIR (moving)" >> /data/logs/bucket01.log
+echo "`date`: Caller: $AETitleCaller, calling $AETitleCalled from $CallerIP in $DIR" >> /data/logs/bucket01.log
+echo "`date`: Process incoming data for processing in $WORKINGDIR" >> /data/logs/bucket01.log
 
 # don't move the data away anymore, keep it in the archive and link to it only (INPUT should not exist here!)
 eval /bin/ln -s ${DIR} ${WORKINGDIR}/INPUT
@@ -55,32 +57,27 @@ found=0
 GEARMAN=`which gearman`
 # make sure jq is installed
 # make sure that "enabled": 1 is in each active bucket (no double quotes around 1)
-for stream in $( ls -d /data/streams/* ); do
-  if [ -f $stream/info.json ]; then
-    enabled=`cat $stream/info.json | jq ".enabled"`
-    echo "`date`: checking if stream $stream is enabled $enabled" >> /data/logs/bucket01.log
-    if [ "$enabled" == "1" ]; then
-      AETitle=`cat $stream/info.json | jq ".aetitle"`
-      AETitle1=`cat $stream/info.json | jq ".aetitle" | sed 's/\"//g'`
-      echo "`date`: stream $stream AETitle $AETitle" >> /data/logs/bucket01.log
-      if [ $AETitleCalled = $AETitle ]; then
-        echo "`date`: start stream $AETitle..." >> /data/logs/bucket01.log
-        $GEARMAN -h 127.0.0.1 -p 4730 -f bucket${AETitle1} -- "${WORKINGDIR}/INPUT ${WORKINGDIR}/OUTPUT"
-        found=1
-        break;
-      fi
-    fi
+buckets=`gearadmin --status | awk '/^bucket/ {print substr($1,7)}'`
+echo "`date`: buckets: $buckets" >> /data/logs/bucket01.log
+for AETitle in $buckets; do
+  if [ $AETitleCalled = $AETitle ]; then
+    echo "`date`: start stream $AETitle..." >> /data/logs/bucket01.log
+    $GEARMAN -h 127.0.0.1 -p 4730 -f bucket${AETitle} -- "${WORKINGDIR}/INPUT ${WORKINGDIR}/OUTPUT"
+    found=1
+    break;
   fi
 done
+
 if [ "$found" -eq 0 ]; then
   echo "`date`: Error: unknown job type ($CallerIP requested $AETitleCalled), ignored" >> /data/logs/bucket01.log
 fi
+
 read s2 < <(date +'%s')
 /usr/bin/curl http://${PARENTIP}:${WEBPORT}/code/php/timing.php?aetitle=${AETitleCalled}\&time=$(( s2 - s1 ))
 
 # implement routing
 echo "`date`: Process bucket01 (starts routing)..." >> /data/logs/bucket01.log
-/data/code/bin/routing.sh ${WORKINGDIR} $AETitleCalled $AETitleCaller
+/data/code/bin/outbound_routing.py ${WORKINGDIR} $AETitleCalled $AETitleCaller
 echo "`date`: Process bucket01 (routing is being performed)..." >> /data/logs/bucket01.log
 
 # implement data extraction

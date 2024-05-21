@@ -28,7 +28,7 @@ case $1 in
 	/usr/bin/storescp --fork \
 	    --write-xfer-little \
 		-ll debug \
-	    --exec-on-reception "$scriptfile '#a' '#c' '#r' '#p' '#f' &" \
+	    --exec-on-reception "$scriptfile '#a' '#c' '#r' '#p' '#f'" \
   	    --sort-on-study-uid scp \
 	    --output-directory "$od" \
 	    $port &> /data/logs/storescpd.log &

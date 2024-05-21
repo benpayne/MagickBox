@@ -26,6 +26,9 @@ CallerIP=$3
 DIR=$4
 FILE=$5
 
+echo "command: $0" >> /data/logs/receivedSingleFile.log
+
+echo "`date`: Caller: $AETitleCaller, calling $AETitleCalled from $CallerIP in $DIR and file $FILE" >> /data/logs/receivedSingleFile.log
 echo "got something for $AETitleCalled" >> /data/logs/receivedSingleFile.log
 
 echo "sending $DIR/$FILE" >> /data/logs/receivedSingleFile.log
@@ -41,5 +44,5 @@ if [[ -p $pipe ]]; then
    echo "sent to $AETitleCalled" >> /data/logs/receivedSingleFile.log
 fi
 
-# called bucket1 process_master to dispach the worker
-/data/streams/bucket01/process_master.sh $AETitleCaller $AETitleCalled $CallerIP $DIR
+# calling inbound routing script to route data to the right bucket
+/data/code/bin/inbound_routing.sh $AETitleCaller $AETitleCalled $CallerIP $DIR

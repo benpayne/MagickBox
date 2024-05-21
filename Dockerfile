@@ -77,6 +77,7 @@ RUN umask 002 && mkdir -p /data/.pids/ \
     && ln -s /etc/apache2/sites-available/001-processing.conf /etc/apache2/sites-enabled/001-processing.conf \
     && useradd -m -s /bin/bash -U processing \
     && usermod -a -G docker processing \
+    && usermod -a -G processing www-data  \
     && chgrp processing /data/logs \ 
     && chgrp processing /data/.pids \ 
     && chgrp -R processing /data/scratch  \ 
@@ -84,7 +85,6 @@ RUN umask 002 && mkdir -p /data/.pids/ \
     && chown -R www-data:www-data /data/code 
 
 COPY code/bin/routing_master.json /data/code/bin/routing.json
-RUN chmod 777 /data/logs
 
 COPY code/assets/docker/mb-startup.sh /mb-startup.sh
 
