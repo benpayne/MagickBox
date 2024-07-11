@@ -21,5 +21,17 @@ services:
     depends_on:
       - core  # Ensures app starts first
 
+  prostate-app:
+    build: ProstateApp/app_files
+    image: prostateapp
+    volumes:
+      - data_scratch:/data/scratch
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      GEARMAN_JOB_SERVER_NAME: "core"
+      GEARMAN_JOB_SERVER_PORT: "4730"
+    depends_on:
+      - core  # Ensures app starts first
+
 volumes:
   data_scratch:

@@ -5,7 +5,7 @@
 # This script is started by monit (/etc/monit/conf.d/processing.conf).
 #
 
-tos=15
+tos=5
 od=/data/scratch/archive
 # create the output directory
 #mkdir -p ${od}
@@ -14,7 +14,7 @@ od=/data/scratch/archive
 port=11113
 pidfile=/data/.pids/storescpd.pid
 # the following script will get the aetitle of the caller, the called aetitle and the path to the data as arguments
-#scriptfile=/data/streams/bucket01/process.sh
+#scriptfile=/data/code/bin/inbound_routing.sh
 scriptfile=/data/code/bin/receiveSingleFile.sh
 
 case $1 in
@@ -25,10 +25,11 @@ case $1 in
 	fi
 	# we should specify a log level here to make this work:
 	# 	    --log-config /data/code/bin/logger.cfg
-	/usr/bin/storescp --fork \
+	/usr/bin/storescp \
 	    --write-xfer-little \
 		-ll debug \
-	    --exec-on-reception "$scriptfile '#a' '#c' '#r' '#p' '#f'" \
+	    --exec-on-eostudy "$scriptfile '#a' '#c' '#r' '#p'" \
+		--eostudy-timeout $tos \
   	    --sort-on-study-uid scp \
 	    --output-directory "$od" \
 	    $port &> /data/logs/storescpd.log &

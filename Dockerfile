@@ -18,8 +18,6 @@ ENV LANG="en_US.UTF-8" \
 
 RUN apt-get update -qq && apt-get install -yq --no-install-recommends  \
     apache2 \
-    apt-utils \
-    build-essential \
     bzip2 \
     ca-certificates \
     cron \
@@ -32,7 +30,6 @@ RUN apt-get update -qq && apt-get install -yq --no-install-recommends  \
     libapache2-mod-php7.4 \
     jq \
     sudo \
-    cron \
     file \
     less \
     procps \
@@ -47,11 +44,10 @@ RUN apt-get update -qq && apt-get install -yq --no-install-recommends  \
     python3-pip \
     docker.io \
     telnet \
-    net-tools
+    net-tools \
+    python3-pydicom 
 
 RUN apt-get clean
-
-RUN pip install pydicom 
 
 COPY code/web /var/www/html/code/web
 COPY code/php /var/www/html/code/php
@@ -87,8 +83,10 @@ RUN umask 002 && mkdir -p /data/.pids/ \
 COPY code/bin/routing_master.json /data/code/bin/routing.json
 
 COPY code/assets/docker/mb-startup.sh /mb-startup.sh
+COPY ProstateApp/app_files/magickbox/ /data/code/magickbox/
+RUN pip3 install python3_gearman
 
-RUN echo "processing ALL=(ALL) NOPASSWD: /usr/bin/docker" >> /etc/sudoers
+#RUN echo "processing ALL=(ALL) NOPASSWD: /usr/bin/docker" >> /etc/sudoers
 
 RUN chmod +x /mb-startup.sh
 
@@ -96,7 +94,5 @@ EXPOSE 80
 EXPOSE 2813
 EXPOSE 11113
 EXPOSE 4730
-
-RUN /data/code/bin/install_buckets mytestbucket TESTBUCKET
 
 ENTRYPOINT ["/mb-startup.sh", "start"]

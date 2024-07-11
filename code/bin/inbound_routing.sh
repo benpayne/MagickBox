@@ -19,7 +19,6 @@ AETitleCalled=`echo $2 | tr -d '"'`
 CallerIP=$3
 DIR=$4
 WORKINGDIR=`mktemp -d --tmpdir=/data/scratch/`
-chmod ugo+rwx $WORKINGDIR
 mkdir ${WORKINGDIR}/OUTPUT
 
 echo "`date`: Caller: $AETitleCaller, calling $AETitleCalled from $CallerIP in $DIR" >> /data/logs/bucket01.log
@@ -27,8 +26,6 @@ echo "`date`: Process incoming data for processing in $WORKINGDIR" >> /data/logs
 
 # don't move the data away anymore, keep it in the archive and link to it only (INPUT should not exist here!)
 eval /bin/ln -s ${DIR} ${WORKINGDIR}/INPUT
-# files need to be deletable by apache later
-chmod -R ugo+rwx ${WORKINGDIR}/INPUT
 
 # store the sender information as text
 (
@@ -58,11 +55,12 @@ GEARMAN=`which gearman`
 # make sure jq is installed
 # make sure that "enabled": 1 is in each active bucket (no double quotes around 1)
 buckets=`gearadmin --status | awk '/^bucket/ {print substr($1,7)}'`
-echo "`date`: buckets: $buckets" >> /data/logs/bucket01.log
+
 for AETitle in $buckets; do
   if [ $AETitleCalled = $AETitle ]; then
     echo "`date`: start stream $AETitle..." >> /data/logs/bucket01.log
-    $GEARMAN -h 127.0.0.1 -p 4730 -f bucket${AETitle} -- "${WORKINGDIR}/INPUT ${WORKINGDIR}/OUTPUT"
+    echo "`date`: $WORKINGDIR" >> /data/logs/bucket01.log
+    /data/code/magickbox/send_work.py ${AETitle} $WORKINGDIR/INPUT $WORKINGDIR/OUTPUT
     found=1
     break;
   fi
@@ -77,7 +75,7 @@ read s2 < <(date +'%s')
 
 # implement routing
 echo "`date`: Process bucket01 (starts routing)..." >> /data/logs/bucket01.log
-/data/code/bin/outbound_routing.py ${WORKINGDIR} $AETitleCalled $AETitleCaller
+#/data/code/bin/outbound_routing.py ${WORKINGDIR} $AETitleCalled $AETitleCaller
 echo "`date`: Process bucket01 (routing is being performed)..." >> /data/logs/bucket01.log
 
 # implement data extraction

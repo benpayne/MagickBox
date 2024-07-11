@@ -22,5 +22,7 @@ else
 fi
 
 echo "Error log:"
+ps aux 
 ls -l /var/log/apache2/
 cat /var/log/apache2/error.log
+cat /var/log/monit.log
