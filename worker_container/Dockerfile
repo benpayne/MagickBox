@@ -17,7 +17,7 @@ COPY run_gearman.sh /root/
 
 RUN chmod 775 /root/work.sh /root/extractor.py /root/run_gearman.sh
 
-COPY db-plugin.code /root/storage/
+#COPY db-plugin.code /root/storage/
 
 ENV AETITLE="TESTBUCKET"
 
